@@ -4,14 +4,14 @@
    [clojure.java.io :refer [resource]]
    [clojure.math.combinatorics :refer [cartesian-product]]
    [clojure.set :refer [intersection]]
-   [clojure.string :as string :refer [split]]
+   [clojure.string :as string :refer [split split-lines]]
    [core :refer [get-ipa normalized-edn ipa-edn]]
    [libpython-clj2.python :refer [from-import]]
    [libpython-clj2.require]
    [mount.core :refer [defstate start]]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
-   [ring.util.response :refer [response]]))
+   [ring.util.response :refer [content-type not-found resource-response response]]))
 
 (from-import Levenshtein distance)
 
@@ -75,14 +75,54 @@
                      [])))
          distinct)))
 
-(def handler
-  (comp response
-        set
-        (partial mapcat generate-puns)
-        :body))
+(defn normalize-targets
+  [targets]
+  (->> targets
+       (map string/trim)
+       (remove string/blank?)))
 
-(def app
-  (wrap-json-response (wrap-json-body handler)))
+(defn extract-targets
+  [body]
+  (cond
+    (sequential? body)
+    (normalize-targets body)
+
+    (map? body)
+    (let [input (or (get body :input) (get body "input"))
+          targets (or (get body :targets) (get body "targets"))]
+      (cond
+        (string? input) (normalize-targets (split-lines input))
+        (sequential? targets) (normalize-targets targets)
+        :else []))
+
+    :else []))
+
+(defn generate-response
+  [targets]
+  (response (sort (set (mapcat generate-puns targets)))))
+
+(defn api-handler
+  [request]
+  (generate-response (extract-targets (:body request))))
+
+(def api-app
+  (wrap-json-response (wrap-json-body api-handler)))
+
+(defn html-home
+  []
+  (if-let [res (resource-response "index.html")]
+    (content-type res "text/html; charset=utf-8")
+    (not-found "Missing index.html")))
+
+(defn app
+  [request]
+  (let [method (:request-method request)
+        uri (:uri request)]
+    (cond
+      (and (= method :get) (= uri "/")) (html-home)
+      (and (= method :post)
+           (or (= uri "/") (= uri "/api/puns"))) (api-app request)
+      :else (not-found "Not found"))))
 
 (defstate server
   :start (run-jetty app {:join? false

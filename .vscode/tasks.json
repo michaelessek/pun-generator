@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run pun web server",
+      "type": "shell",
+      "command": "clj -M -m server",
+      "options": {
+        "cwd": "${workspaceFolder}/clj"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

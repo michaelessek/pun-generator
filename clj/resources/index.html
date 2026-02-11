@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pun</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f1e8 0%, #d9ecff 100%);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(780px, 100%);
+        background: #ffffff;
+        border: 2px solid #1e2a38;
+        border-radius: 16px;
+        box-shadow: 10px 10px 0 #1e2a38;
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 2rem;
+      }
+
+      p {
+        margin: 0 0 16px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 110px;
+        border: 2px solid #1e2a38;
+        border-radius: 10px;
+        padding: 10px;
+        font: inherit;
+        resize: vertical;
+        box-sizing: border-box;
+      }
+
+      button {
+        margin-top: 12px;
+        border: 2px solid #1e2a38;
+        border-radius: 10px;
+        background: #ffcc5c;
+        color: #1e2a38;
+        font: inherit;
+        font-weight: 700;
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.65;
+        cursor: wait;
+      }
+
+      #status {
+        margin-top: 14px;
+        font-size: 0.95rem;
+      }
+
+      ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+      }
+
+      li {
+        margin: 6px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>pun</h1>
+      <p>Enter one or more words. One per line works best.</p>
+      <form id="pun-form">
+        <textarea id="targets" placeholder="pun&#10;joke"></textarea>
+        <button id="submit" type="submit">Generate Puns</button>
+      </form>
+      <div id="status"></div>
+      <ul id="results"></ul>
+    </main>
+    <script>
+      const form = document.getElementById("pun-form");
+      const textarea = document.getElementById("targets");
+      const statusNode = document.getElementById("status");
+      const list = document.getElementById("results");
+      const submit = document.getElementById("submit");
+
+      function setStatus(text) {
+        statusNode.textContent = text;
+      }
+
+      function renderResults(items) {
+        list.innerHTML = "";
+        for (const item of items) {
+          const li = document.createElement("li");
+          li.textContent = item;
+          list.appendChild(li);
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const input = textarea.value.trim();
+        if (!input) {
+          setStatus("Enter at least one word.");
+          renderResults([]);
+          return;
+        }
+
+        submit.disabled = true;
+        setStatus("Generating...");
+
+        try {
+          const response = await fetch("/api/puns", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ input })
+          });
+
+          if (!response.ok) {
+            throw new Error("Request failed");
+          }
+
+          const data = await response.json();
+          renderResults(Array.isArray(data) ? data : []);
+          setStatus(`Generated ${Array.isArray(data) ? data.length : 0} pun(s).`);
+        } catch (error) {
+          renderResults([]);
+          setStatus("Failed to generate puns. Check server logs.");
+        } finally {
+          submit.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

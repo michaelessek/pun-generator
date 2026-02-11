@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Define the data path using DEVENV_ROOT
 DATA_PATH="$DEVENV_ROOT/clj/resources"
@@ -9,12 +10,24 @@ mkdir -p "$DATA_PATH"
 
 echo "Downloading and decompressing data to $DATA_PATH..."
 
-# Download and decompress normalized.edn.gz
-wget -Nc -P "$DATA_PATH" "$BASE_URL/normalized.edn.gz"
+download_file() {
+  local url="$1"
+  local out="$2"
+
+  if command -v wget >/dev/null 2>&1; then
+    wget -O "$out" "$url"
+  elif command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url" -o "$out"
+  else
+    echo "Error: need either wget or curl installed." >&2
+    exit 1
+  fi
+}
+
+download_file "$BASE_URL/normalized.edn.gz" "$DATA_PATH/normalized.edn.gz"
 gzip -d -f "$DATA_PATH/normalized.edn.gz"
 
-# Download and decompress ipa.edn.gz
-wget -Nc -P "$DATA_PATH" "$BASE_URL/ipa.edn.gz"
+download_file "$BASE_URL/ipa.edn.gz" "$DATA_PATH/ipa.edn.gz"
 gzip -d -f "$DATA_PATH/ipa.edn.gz"
 
 echo "Done."

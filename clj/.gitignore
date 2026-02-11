@@ -23,3 +23,6 @@ pom.xml.asc
 
 ### pun
 resources
+!resources
+resources/*
+!resources/index.html
