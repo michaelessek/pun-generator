@@ -13,6 +13,7 @@ This repository keeps the original mechanism for pun generation and adds a simpl
 
 This repository now includes:
 - A web UI (`GET /`) for interactive use in a browser.
+- A mode switch in the UI to choose between `ours` and `ssaamm` generation styles.
 - A JSON API (`POST /api/puns`) for integrations.
 - The original CLI flow (`pbpaste | pun`) via the Haskell executable.
 
@@ -28,7 +29,7 @@ The core generation logic is shared across web, API, and CLI usage.
 ## Quick Start (Web UI)
 
 ```bash
-git clone https://github.com/8ta4/pun.git
+git clone https://github.com/michaelessek/pun-generator.git
 cd pun
 ```
 
@@ -48,6 +49,15 @@ clj -M -m server
 Open:
 
 `http://localhost:3000`
+
+## Generator Modes
+
+The web UI includes two tabs:
+
+- `Our Generator`: the original project-style generation logic (larger result sets, recognizability-filtered phrase substitutions).
+- `Ssaamm Style`: an alternative ranking style inspired by `ssaamm/pun-generator` (returns top ranked substitutions, default limit `10`).
+
+Mode behavior is also available in the API via the `mode` field.
 
 ## API Usage
 
@@ -85,14 +95,16 @@ Optional mode selector:
 { "input": "pun", "mode": "ssaamm", "limit": 10 }
 ```
 
-`mode` defaults to `ours`. The `ssaamm` mode returns ranked substitutions in the style of `ssaamm/pun-generator`.
+`mode` defaults to `ours`.
+`ssaamm` mode returns ranked substitutions in the style of `ssaamm/pun-generator`.
+`limit` applies to `ssaamm` mode (default `10`, max `100`).
 
 Example:
 
 ```bash
 curl -sS http://localhost:3000/api/puns \
   -H "content-type: application/json" \
-  -d '{"input":"pun\njoke"}'
+  -d '{"input":"pun","mode":"ssaamm","limit":10}'
 ```
 
 ## CLI Usage
