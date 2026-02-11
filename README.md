@@ -1,6 +1,6 @@
-# pun
+# Pun Generator
 
-`pun` generates obvious puns from one or more target words.
+`Pun Generator` (`pun`) generates obvious puns from one or more target words.
 
 ## Attribution
 
@@ -74,6 +74,18 @@ Accepted request bodies:
 ```json
 { "targets": ["pun", "joke"] }
 ```
+
+Optional mode selector:
+
+```json
+{ "input": "pun", "mode": "ours" }
+```
+
+```json
+{ "input": "pun", "mode": "ssaamm", "limit": 10 }
+```
+
+`mode` defaults to `ours`. The `ssaamm` mode returns ranked substitutions in the style of `ssaamm/pun-generator`.
 
 Example:
 

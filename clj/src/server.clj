@@ -75,6 +75,51 @@
                      [])))
          distinct)))
 
+(def default-ssaamm-limit
+  10)
+
+(def max-ssaamm-limit
+  100)
+
+(defn normalize-limit
+  [raw-limit]
+  (let [limit (try
+                (Integer/parseInt (str raw-limit))
+                (catch Exception _ default-ssaamm-limit))]
+    (-> limit
+        (max 1)
+        (min max-ssaamm-limit))))
+
+(defn replace-word-at-index
+  [phrase index replacement]
+  (let [words (vec (split phrase #" "))
+        original (get words index)]
+    (when (and original
+               (not= (string/lower-case original) (string/lower-case replacement)))
+      (string/join " " (assoc words index replacement)))))
+
+(defn generate-puns-ssaamm
+  [substitute-word limit]
+  (let [target-ipa (get-ipa substitute-word)]
+    (if (string/blank? target-ipa)
+      []
+      (->> recognizable-multi-word-phrases
+           (mapcat (fn [phrase]
+                     (let [words (split phrase #" ")]
+                       (keep-indexed
+                        (fn [index word]
+                          (let [word-ipa (get phrase-ipas word)
+                                pun (replace-word-at-index phrase index substitute-word)]
+                            (when (and word-ipa
+                                       (pos? (count word-ipa))
+                                       pun)
+                              [(/ (distance target-ipa word-ipa) (count word-ipa)) pun])))
+                        words))))
+           (sort-by first)
+           (map second)
+           distinct
+           (take limit)))))
+
 (defn normalize-targets
   [targets]
   (->> targets
@@ -97,13 +142,38 @@
 
     :else []))
 
+(defn normalize-mode
+  [raw-mode]
+  (let [mode (-> (or raw-mode "ours")
+                 str
+                 string/lower-case)]
+    (if (#{"ours" "ssaamm"} mode)
+      mode
+      "ours")))
+
+(defn extract-options
+  [body]
+  (if (map? body)
+    {:targets (extract-targets body)
+     :mode (normalize-mode (or (get body :mode) (get body "mode")))
+     :limit (normalize-limit (or (get body :limit) (get body "limit")))}
+    {:targets (extract-targets body)
+     :mode "ours"
+     :limit default-ssaamm-limit}))
+
 (defn generate-response
-  [targets]
-  (response (sort (set (mapcat generate-puns targets)))))
+  [{:keys [targets mode limit]}]
+  (let [puns (if (= mode "ssaamm")
+               (->> targets
+                    (mapcat #(generate-puns-ssaamm % limit))
+                    distinct
+                    (take limit))
+               (sort (set (mapcat generate-puns targets))))]
+    (response puns)))
 
 (defn api-handler
   [request]
-  (generate-response (extract-targets (:body request))))
+  (generate-response (extract-options (:body request))))
 
 (def api-app
   (wrap-json-response (wrap-json-body api-handler)))

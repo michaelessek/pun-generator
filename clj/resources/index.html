@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>pun</title>
+    <title>Pun Generator</title>
     <style>
       :root {
         color-scheme: light;
@@ -35,6 +35,22 @@
 
       p {
         margin: 0 0 16px;
+      }
+
+      .mode-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .mode-tabs button {
+        margin-top: 0;
+        background: #f2f5f8;
+      }
+
+      .mode-tabs button.active {
+        background: #1e2a38;
+        color: #ffffff;
       }
 
       textarea {
@@ -82,9 +98,13 @@
   </head>
   <body>
     <main>
-      <h1>pun</h1>
+      <h1>Pun Generator</h1>
       <p>Enter one or more words. One per line works best.</p>
       <form id="pun-form">
+        <div class="mode-tabs">
+          <button type="button" class="mode-btn active" data-mode="ours">Our Generator</button>
+          <button type="button" class="mode-btn" data-mode="ssaamm">Ssaamm Style</button>
+        </div>
         <textarea id="targets" placeholder="pun&#10;joke"></textarea>
         <button id="submit" type="submit">Generate Puns</button>
       </form>
@@ -97,6 +117,8 @@
       const statusNode = document.getElementById("status");
       const list = document.getElementById("results");
       const submit = document.getElementById("submit");
+      const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
+      let selectedMode = "ours";
 
       function setStatus(text) {
         statusNode.textContent = text;
@@ -109,6 +131,17 @@
           li.textContent = item;
           list.appendChild(li);
         }
+      }
+
+      function setMode(mode) {
+        selectedMode = mode;
+        for (const button of modeButtons) {
+          button.classList.toggle("active", button.dataset.mode === selectedMode);
+        }
+      }
+
+      for (const button of modeButtons) {
+        button.addEventListener("click", () => setMode(button.dataset.mode));
       }
 
       form.addEventListener("submit", async (event) => {
@@ -127,7 +160,7 @@
           const response = await fetch("/api/puns", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ input })
+            body: JSON.stringify({ input, mode: selectedMode })
           });
 
           if (!response.ok) {
@@ -136,7 +169,7 @@
 
           const data = await response.json();
           renderResults(Array.isArray(data) ? data : []);
-          setStatus(`Generated ${Array.isArray(data) ? data.length : 0} pun(s).`);
+          setStatus(`Generated ${Array.isArray(data) ? data.length : 0} pun(s) with ${selectedMode}.`);
         } catch (error) {
           renderResults([]);
           setStatus("Failed to generate puns. Check server logs.");
